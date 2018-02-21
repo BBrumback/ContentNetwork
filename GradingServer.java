@@ -19,26 +19,27 @@ public class GradingServer {
 		
 		//You will need to change these if you are on a different server
 		final String serverIP = "192.168.1.";
-		final int serverPort = 1099;
-		
-		
+		final int serverPort = 1099;		
+
 		List<Node> allNodes = new ArrayList<Node>();
 		Node node;
 		
+		LocateRegistry.createRegistry(1099);
 		
-		//for(int j = 30; j <= 50; j++) {
-			LocateRegistry.createRegistry(1099);
-			reg = LocateRegistry.getRegistry(InetAddress.getLocalHost().getHostAddress(), serverPort);
-			for(int i = 0; i <= 10; i++) {
-				try {
-					node = (Node) reg.lookup("node" + i);
-					allNodes.add(node);
-					break;
-				} catch (Exception e) {
-					//Keep going
-				}
+		for(int j = 30; j <= 50; j++) {
+			//LocateRegistry.createRegistry(1099);
+			System.out.println("Scanning " + serverIP + j);
+			reg = LocateRegistry.getRegistry(serverIP + j, serverPort);
+			try {
+				node = (Node) reg.lookup("node" + 0);
+				node.setName("node" + allNodes.size());
+				allNodes.add(node);
+				System.out.println("Found node" + 0 + " on " + j);
+			} catch (Exception e) {
+				//Keep going
 			}
-		//}
+			
+		}
 		reg = LocateRegistry.getRegistry(InetAddress.getLocalHost().getHostAddress(), serverPort);
 		
 		
@@ -57,29 +58,28 @@ public class GradingServer {
 					System.out.println(node.insert(input.nextLine()));
 					
 				}else if(command.equals("view")){
-					System.out.println("Please input the node number you want to run this command on\ninput blank to run on all nodes: ");
+					System.out.println("Please input the node (in node# format) you want to run this command on\ninput blank to run on all nodes: ");
 					nodeName = input.nextLine();
 					if(!nodeName.equals("")) {
 						node = findNode(nodeName, allNodes);
 						System.out.println(node.view());
 					}else {
 						for(int i = 0; i < allNodes.size(); i++) {
-							allNodes.get(i).view();
+							System.out.println(allNodes.get(i).view());
 						}
 					}
 					
 				}else if(command.equals("search")){
 					
-					System.out.println("Please input the node number you want to run this command on : ");
+					System.out.println("Please input the node (in node# format) you want to run this command on : ");
 					nodeName = input.nextLine();
 					node = findNode(nodeName, allNodes);
 					System.out.println("input the keyword you are looking for : ");
 					System.out.println(node.search(input.nextLine()));
 					
 				}else if(command.equals("join")){
-					System.out.println("Please input the node number you want to run this command on : ");
+					System.out.println("Please input the node (in node# format) you want to run this command on : ");
 					nodeName = input.nextLine();
-					System.out.println(nodeName.length());
 					if(!nodeName.equals("")) {
 						node = findNode(nodeName, allNodes);
 						System.out.println(node.join(Math.random() * 10, Math.random() * 10));
@@ -90,7 +90,7 @@ public class GradingServer {
 					}
 					
 				}else if(command.equals("leave")) {
-					System.out.println("Please input the node number you want to run this command on : ");
+					System.out.println("Please input the node (in node# format) you want to run this command on : ");
 					nodeName = input.nextLine();
 					if(!nodeName.equals("")) {
 						node = findNode(nodeName, allNodes);
@@ -113,6 +113,9 @@ public class GradingServer {
 				}
 			}catch (Exception e) {
 				System.out.println("Node not found");
+				System.out.println("Make sure you are inputting nodes in node# format");
+				System.out.println("For example to run view on node 4");
+				System.out.println("view\nnode4");
 			}
 			
 			command = input.nextLine();

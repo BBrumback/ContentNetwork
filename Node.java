@@ -47,7 +47,7 @@ public interface Node extends Remote{
 
 	public void setBootstrapper(boolean b) throws RemoteException;
 
-	
+	public void setName(String name) throws RemoteException;	
 
 	public void addNeighbors(Set<Node> neighbors) throws RemoteException;
 

@@ -143,12 +143,16 @@ public class NodeImpl extends UnicastRemoteObject implements Node{
 		if(!isInNetwork) {
 			isInNetwork = true;
 			if(getBootstrapper(30)) {
+				reg = LocateRegistry.getRegistry(ip.toString(), serverPort);
 				splitNode = bs.splitNode(x, y);
+				debugOutput("Node name " + splitNode.getName());
 				zones.add(splitNode.split());
 				Set<Node> neighborsToCheck = splitNode.getNeighbors();
 				this.findNeighbors(splitNode, neighborsToCheck);
 				splitNode.findNeighbors(this, neighborsToCheck);
 				splitNode.reInsert();
+			}else{
+				debugOutput("I didnt find a bootstrapper");
 			}
 		}
 		return view();
@@ -169,7 +173,8 @@ public class NodeImpl extends UnicastRemoteObject implements Node{
 			if(!neighbors.isEmpty()) {
 				Node newBootstrapper = neighbors.iterator().next();
 				newBootstrapper.setBootstrapper(true);
-				bs.setBootstrapNode(newBootstrapper);
+				reg.unbind("bootStrapper");
+				//bs.setBootstrapNode(newBootstrapper);
 			}else {
 				reg.unbind("bootStrapper");
 			}
@@ -209,6 +214,13 @@ public class NodeImpl extends UnicastRemoteObject implements Node{
 
 	public void setBootstrapper(boolean isBootstrapper) {
 		this.isBootstrapper = isBootstrapper;
+		try {
+			this.bs = new BootStrapperImpl(this);
+			reg.bind("bootStrapper", bs);
+		} catch (AlreadyBoundException | RemoteException e1) {
+			e1.printStackTrace();
+		}
+		
 	}
 
 	public List<Zone> getZones() {
@@ -342,11 +354,14 @@ public class NodeImpl extends UnicastRemoteObject implements Node{
 		return area;
 	}
 
+	public void setName(String name) throws RemoteException{
+		nodeName = name;
+	}
+
 	public void unbindName() {
 		try {
-			reg.unbind(nodeName);
+			reg.unbind("node0");
 		} catch (RemoteException | NotBoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -360,15 +375,17 @@ public class NodeImpl extends UnicastRemoteObject implements Node{
 		if(host <= 50) {
 			//First try to find a bootstrapper somewhere in the network
 			try {
+				debugOutput("Trying 192.168.1." + host);
 				reg = LocateRegistry.getRegistry("192.168.1." + host, serverPort);
 				bs = (BootStrapper)reg.lookup("bootStrapper");
+				debugOutput("Found on 192.168.1." + host);
 				return true;
 			} catch (RemoteException e) {
-				e.printStackTrace();
+				return getBootstrapper(host + 1);
 			} catch (NotBoundException e) {
 				//This is where I will create a bootstrapper
 				//This returns so the bottom half of this code doesnt happen.
-				getBootstrapper(host + 1);
+				return  getBootstrapper(host + 1);
 			}
 		} else {
 			//if there isnt one you become the bootstrapper
@@ -383,7 +400,8 @@ public class NodeImpl extends UnicastRemoteObject implements Node{
 			zones.add(new Zone(0,0,10,10,true));
 			return false;
 		}
-		return false;
+		//debugOutput("I defaulted");
+		//return true;
 	}
 	
 	//Gives a zone to a neigbor, this method tries to merge first if unable to merge
@@ -508,7 +526,7 @@ public class NodeImpl extends UnicastRemoteObject implements Node{
 	
 	//Prints debugging output if the flag is true
 	private void debugOutput(String print) {
-		if(false)
+		if(true)
 			System.out.println(print);
 	}
 }
