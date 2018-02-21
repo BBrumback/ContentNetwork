@@ -1,9 +1,12 @@
+import java.net.MalformedURLException;
 import java.net.UnknownHostException;
+import java.rmi.Naming;
+import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.util.Scanner;
 
 public class Server {
-	public static void main(String args[]) throws RemoteException, UnknownHostException {
+	public static void main(String args[]) throws RemoteException, UnknownHostException, MalformedURLException, NotBoundException {
 		Scanner input = new Scanner(System.in);
 		String command;
 		
@@ -12,14 +15,23 @@ public class Server {
 		
 		command = input.nextLine();
 		while(!command.equals("quit")) {
+			
+			//Here are the basic commands
 			if(command.equals("insert")){
-				System.out.println(node.insert(input.next()));
+				//node.insert(input.next());
+				System.out.println(node.insert(input.nextLine()));
 			}else if(command.equals("view")){
 				System.out.println(node.view());
 			}else if(command.equals("search")){
-				System.out.println(node.search(input.next()));
+				//node.search(input.next());
+				System.out.println(node.search(input.nextLine()));
 			}else if(command.equals("join")){
+				//node.join(Math.random() * 10, Math.random() * 10);
 				System.out.println(node.join(Math.random() * 10, Math.random() * 10));
+			}else if(command.equals("leave")) {
+				System.out.println(node.leave());
+			
+			//Here is help to explain commands
 			}else if(command.equals("help")) {
 				System.out.println("quit      use to exit the program");
 				System.out.println("insert    use to add a keyword to the network");
@@ -33,6 +45,10 @@ public class Server {
 			command = input.nextLine();
 		}
 		
+		node.leave();
+		node.unbindName();
+		System.out.println("Server shutting down");
 		input.close();
+		System.exit(0);
 	}
 }
