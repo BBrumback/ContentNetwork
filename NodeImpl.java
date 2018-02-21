@@ -15,8 +15,6 @@ import java.util.Set;
 @SuppressWarnings("serial")
 public class NodeImpl extends UnicastRemoteObject implements Node{
 
-	//These should be changed if you are running on a different server
-	final private String serverIP = "localhost";
 	final private int serverPort = 1099;
 	
 	
@@ -39,13 +37,15 @@ public class NodeImpl extends UnicastRemoteObject implements Node{
 	
 	public NodeImpl() throws RemoteException, UnknownHostException {
 		super();
-		reg = LocateRegistry.getRegistry(serverIP, serverPort);
+		LocateRegistry.createRegistry(1099);
 		
 		ip = InetAddress.getLocalHost().getHostAddress();
 		zones = new ArrayList<Zone>();
 		keywords = new ArrayList<String>();
 		neighbors = new HashSet<Node>();
+		reg = LocateRegistry.getRegistry(ip, serverPort);
 		bindName(0);
+		
 	}
 	
 	//add constructor back, might want to bind name in constructor
@@ -142,29 +142,14 @@ public class NodeImpl extends UnicastRemoteObject implements Node{
 		//Make sure you arent in the network already
 		if(!isInNetwork) {
 			isInNetwork = true;
-			try {
-				bs = (BootStrapper)reg.lookup("bootStrapper");
-			} catch (RemoteException e) {
-				e.printStackTrace();
-			} catch (NotBoundException e) {
-				//This is where I will create a bootstrapper
-				//This returns so the bottom half of this code doesnt happen.
-				bs = new BootStrapperImpl(this);
-				try {
-					reg.bind("bootStrapper", bs);
-				} catch (AlreadyBoundException e1) {
-					e1.printStackTrace();
-				}
-				isBootstrapper = true;
-				zones.add(new Zone(0,0,10,10,true));
-				return view();
+			if(getBootstrapper(30)) {
+				splitNode = bs.splitNode(x, y);
+				zones.add(splitNode.split());
+				Set<Node> neighborsToCheck = splitNode.getNeighbors();
+				this.findNeighbors(splitNode, neighborsToCheck);
+				splitNode.findNeighbors(this, neighborsToCheck);
+				splitNode.reInsert();
 			}
-			splitNode = bs.splitNode(x, y);
-			zones.add(splitNode.split());
-			Set<Node> neighborsToCheck = splitNode.getNeighbors();
-			this.findNeighbors(splitNode, neighborsToCheck);
-			splitNode.findNeighbors(this, neighborsToCheck);
-			splitNode.reInsert();
 		}
 		return view();
 	}
@@ -369,6 +354,37 @@ public class NodeImpl extends UnicastRemoteObject implements Node{
 	/*
 	 * These are private helper methods
 	 */
+	
+	private boolean getBootstrapper(int host) throws RemoteException {
+		
+		if(host <= 50) {
+			//First try to find a bootstrapper somewhere in the network
+			try {
+				reg = LocateRegistry.getRegistry("192.168.1." + host, serverPort);
+				bs = (BootStrapper)reg.lookup("bootStrapper");
+				return true;
+			} catch (RemoteException e) {
+				e.printStackTrace();
+			} catch (NotBoundException e) {
+				//This is where I will create a bootstrapper
+				//This returns so the bottom half of this code doesnt happen.
+				getBootstrapper(host + 1);
+			}
+		} else {
+			//if there isnt one you become the bootstrapper
+			reg = LocateRegistry.getRegistry(ip.toString(), serverPort);
+			bs = new BootStrapperImpl(this);
+			try {
+				reg.bind("bootStrapper", bs);
+			} catch (AlreadyBoundException e1) {
+				e1.printStackTrace();
+			}
+			isBootstrapper = true;
+			zones.add(new Zone(0,0,10,10,true));
+			return false;
+		}
+		return false;
+	}
 	
 	//Gives a zone to a neigbor, this method tries to merge first if unable to merge
 	// it gives the zone to the smallest neighbor

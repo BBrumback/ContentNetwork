@@ -1,3 +1,5 @@
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
@@ -9,29 +11,35 @@ import java.util.Scanner;
 
 public class GradingServer {
 
-	public static void main(String[] args) throws RemoteException, NotBoundException {
+	public static void main(String[] args) throws RemoteException, NotBoundException, UnknownHostException {
 		Scanner input = new Scanner(System.in);
 		String command;
 		String nodeName;
 		Registry reg;
 		
 		//You will need to change these if you are on a different server
-		final String serverIP = "localhost";
+		final String serverIP = "192.168.1.";
 		final int serverPort = 1099;
-		reg = LocateRegistry.getRegistry(serverIP, serverPort);
+		
 		
 		List<Node> allNodes = new ArrayList<Node>();
 		Node node;
 		
-		for(int i = 0; i <= 10; i++) {
-			try {
-				node = (Node) reg.lookup("node" + i);
-				allNodes.add(node);
-			} catch (Exception e) {
-				//Keep going
-			}
-		}
 		
+		//for(int j = 30; j <= 50; j++) {
+			LocateRegistry.createRegistry(1099);
+			reg = LocateRegistry.getRegistry(InetAddress.getLocalHost().getHostAddress(), serverPort);
+			for(int i = 0; i <= 10; i++) {
+				try {
+					node = (Node) reg.lookup("node" + i);
+					allNodes.add(node);
+					break;
+				} catch (Exception e) {
+					//Keep going
+				}
+			}
+		//}
+		reg = LocateRegistry.getRegistry(InetAddress.getLocalHost().getHostAddress(), serverPort);
 		
 		
 		System.out.println("Server up and running");
@@ -42,17 +50,17 @@ public class GradingServer {
 			try {
 				//Here are the basic commands
 				if(command.equals("insert")){
-					System.out.println("Please input the node you want to run this command on : ");
+					System.out.println("Please input the node number you want to run this command on : ");
 					nodeName = input.nextLine();
-					node = (Node) reg.lookup(nodeName);
+					node = findNode(nodeName, allNodes);
 					System.out.println("input the keyword you would like to insert : ");
 					System.out.println(node.insert(input.nextLine()));
 					
 				}else if(command.equals("view")){
-					System.out.println("Please input the node you want to run this command on\ninput blank to run on all nodes: ");
+					System.out.println("Please input the node number you want to run this command on\ninput blank to run on all nodes: ");
 					nodeName = input.nextLine();
 					if(!nodeName.equals("")) {
-						node = (Node) reg.lookup(nodeName);
+						node = findNode(nodeName, allNodes);
 						System.out.println(node.view());
 					}else {
 						for(int i = 0; i < allNodes.size(); i++) {
@@ -62,18 +70,18 @@ public class GradingServer {
 					
 				}else if(command.equals("search")){
 					
-					System.out.println("Please input the node you want to run this command on : ");
+					System.out.println("Please input the node number you want to run this command on : ");
 					nodeName = input.nextLine();
-					node = (Node) reg.lookup(nodeName);
+					node = findNode(nodeName, allNodes);
 					System.out.println("input the keyword you are looking for : ");
 					System.out.println(node.search(input.nextLine()));
 					
 				}else if(command.equals("join")){
-					System.out.println("Please input the node you want to run this command on : ");
+					System.out.println("Please input the node number you want to run this command on : ");
 					nodeName = input.nextLine();
 					System.out.println(nodeName.length());
 					if(!nodeName.equals("")) {
-						node = (Node) reg.lookup(nodeName);
+						node = findNode(nodeName, allNodes);
 						System.out.println(node.join(Math.random() * 10, Math.random() * 10));
 					}else {
 						for(int i = 0; i < allNodes.size(); i++) {
@@ -82,10 +90,10 @@ public class GradingServer {
 					}
 					
 				}else if(command.equals("leave")) {
-					System.out.println("Please input the node you want to run this command on : ");
+					System.out.println("Please input the node number you want to run this command on : ");
 					nodeName = input.nextLine();
 					if(!nodeName.equals("")) {
-						node = (Node) reg.lookup(nodeName);
+						node = findNode(nodeName, allNodes);
 						System.out.println(node.leave());
 					}else {
 						for(int i = 0; i < allNodes.size(); i++) {
@@ -113,5 +121,14 @@ public class GradingServer {
 		System.out.println("Server shutting down");
 		input.close();
 		System.exit(0);
+	}
+		
+	private static Node findNode(String name, List<Node> allNodes) throws RemoteException {
+		for(int i = 0; i < allNodes.size(); i++) {
+			if(allNodes.get(i).getName().equals(name)) {
+				return allNodes.get(i);
+			}
+		}
+		return null;
 	}
 }
