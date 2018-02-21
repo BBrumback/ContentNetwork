@@ -526,7 +526,7 @@ public class NodeImpl extends UnicastRemoteObject implements Node{
 	
 	//Prints debugging output if the flag is true
 	private void debugOutput(String print) {
-		if(true)
+		if(false)
 			System.out.println(print);
 	}
 }
